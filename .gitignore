@@ -16,5 +16,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 
+# —— 文档（本地撰写，不入库） ——
+docs/
+
 # —— 工具快照 ——
 .merkle-snapshot.json
