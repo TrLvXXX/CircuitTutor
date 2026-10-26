@@ -3,7 +3,9 @@ node_modules/
 .npm-cache/
 
 # —— 构建产物 / 缓存 ——
+# frontend/dist 需要入库：后端直接托管它，用户因此无需安装 Node.js。
 dist/
+!frontend/dist/
 .vite/
 *.tsbuildinfo
 

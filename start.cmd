@@ -18,6 +18,7 @@ set "ROOT=%~dp0"
 if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 set "BACKEND_DIR=%ROOT%\backend"
 set "FRONTEND_DIR=%ROOT%\frontend"
+set "FRONTEND_DIST=%FRONTEND_DIR%\dist"
 set "VENV_DIR=%BACKEND_DIR%\.venv"
 set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
 set "NPM_CACHE=%ROOT%\.npm-cache"
@@ -42,10 +43,12 @@ if not exist "%FRONTEND_DIR%\package.json" (
 
 rem -------------------------------------------------------------
 rem  Step 1 - locate a usable Python 3.10+
-rem  Order: CIRCUIT_TUTOR_PYTHON env var, backend\.venv, py launcher,
-rem         python/python3 on PATH, common install folders.
-rem  Broken or fake interpreters (Microsoft Store aliases return 9009)
-rem  are skipped automatically by the probe subroutine.
+rem  Order: CIRCUIT_TUTOR_PYTHON env var, backend\.venv, py -3,
+rem         python/python3 on PATH, paths reported by "py -0p",
+rem         registry installs, common install folders, manual input.
+rem  Every candidate is executed first, so broken registrations
+rem  (py pointing at a moved install) and Microsoft Store aliases
+rem  (error 9009) are skipped instead of aborting the launcher.
 rem -------------------------------------------------------------
 set "PY_EXE="
 
@@ -59,18 +62,35 @@ call :probe_cmd py -3
 if not defined PY_EXE call :probe_cmd python
 if not defined PY_EXE call :probe_cmd python3
 
+rem -- ask the launcher where it thinks Python lives, then verify each path --
+if not defined PY_EXE call :probe_py_list
+
+rem -- registry: HKCU and HKLM, both 32/64-bit views --
+if not defined PY_EXE call :probe_registry HKCU\Software\Python\PythonCore
+if not defined PY_EXE call :probe_registry HKLM\Software\Python\PythonCore
+if not defined PY_EXE call :probe_registry HKLM\Software\WOW6432Node\Python\PythonCore
+
+rem -- common install locations, including non-standard drives --
 if not defined PY_EXE (
-  for /d %%D in ("%LOCALAPPDATA%\Programs\Python\Python3*") do (
-    if not defined PY_EXE call :probe_path "%%~D\python.exe"
-  )
-)
-if not defined PY_EXE (
-  for /d %%D in ("%ProgramFiles%\Python3*" "C:\Python3*") do (
+  for /d %%D in (
+    "%LOCALAPPDATA%\Programs\Python\Python3*"
+    "%ProgramFiles%\Python3*"
+    "%ProgramFiles(x86)%\Python3*"
+    "C:\Python3*"
+    "D:\Python3*"
+    "D:\tools\python3*"
+    "D:\tools\Python3*"
+    "E:\Python3*"
+  ) do (
     if not defined PY_EXE call :probe_path "%%~D\python.exe"
   )
 )
 
+rem -- last resort: let the user paste a path --
+if not defined PY_EXE call :ask_python
+
 if not defined PY_EXE (
+  echo.
   echo [ERROR] No usable Python 3.10+ found.
   echo         Fix it in one of these ways:
   echo           1. Install Python 3.10+ and tick "Add python.exe to PATH"
@@ -83,7 +103,7 @@ if not defined PY_EXE (
 )
 
 :python_found
-echo [1/4] Python: %PY_EXE%
+echo [1/3] Python: %PY_EXE%
 
 rem -------------------------------------------------------------
 rem  Step 2 - backend virtualenv + dependencies
@@ -119,54 +139,51 @@ if !errorlevel! neq 0 (
 )
 
 rem -------------------------------------------------------------
-rem  Step 3 - frontend dependencies
+rem  Step 3 - check the prebuilt frontend
+rem  The Vite build output ships with the repository, so no Node.js
+rem  and no npm install are needed to just run the app.
 rem -------------------------------------------------------------
-if not exist "%FRONTEND_DIR%\node_modules" (
+if not exist "%FRONTEND_DIST%\index.html" (
+  echo [2/3] Frontend build missing, trying to build it ...
   where npm >nul 2>&1
-  if !errorlevel! neq 0 (
-    echo [ERROR] Node.js / npm not found.
-    echo         Install Node.js 20 LTS or newer: https://nodejs.org/
-    pause
-    exit /b 1
+  if !errorlevel! equ 0 (
+    pushd "%FRONTEND_DIR%"
+    if not exist "node_modules" call npm.cmd install --no-fund --no-audit --cache "%NPM_CACHE%"
+    call npm.cmd run build
+    popd
   )
-  echo [2/4] Installing frontend dependencies ^(first run, needs internet^) ...
-  pushd "%FRONTEND_DIR%"
-  call npm.cmd install --no-fund --no-audit --cache "%NPM_CACHE%"
-  popd
-  if not exist "%FRONTEND_DIR%\node_modules" (
-    echo [ERROR] Failed to install frontend dependencies.
-    echo         Retry manually: cd frontend ^&^& npm install
+  if not exist "%FRONTEND_DIST%\index.html" (
+    echo [ERROR] frontend\dist\index.html not found and could not be built.
+    echo         Do one of these:
+    echo           1. Install Node.js 20 LTS ^(https://nodejs.org/^) and run build_frontend.cmd
+    echo           2. Copy a prebuilt "dist" folder into frontend\dist
     pause
     exit /b 1
   )
 ) else (
-  echo [2/4] Frontend dependencies already installed.
+  echo [2/3] Frontend build found.
 )
 
 rem -------------------------------------------------------------
 rem  Step 4 - free-port check
 rem -------------------------------------------------------------
-for %%P in (%BACKEND_PORT% %FRONTEND_PORT%) do (
-  set "PORT_BUSY="
-  netstat -ano | findstr /r /c:":%%P .*LISTENING" >nul 2>&1
-  if !errorlevel! equ 0 set "PORT_BUSY=1"
-  if defined PORT_BUSY (
-    echo [ERROR] Port %%P is already in use. Close that program and retry.
-    echo         Find it with: netstat -ano ^| findstr :%%P
-    pause
-    exit /b 1
-  )
+netstat -ano | findstr /r /c:":%BACKEND_PORT% .*LISTENING" >nul 2>&1
+if !errorlevel! equ 0 (
+  echo [ERROR] Port %BACKEND_PORT% is already in use. Close that program and retry.
+  echo         Find it with: netstat -ano ^| findstr :%BACKEND_PORT%
+  pause
+  exit /b 1
 )
 
 rem -------------------------------------------------------------
-rem  Step 5 - start backend in its own window
+rem  Step 5 - start backend (also serves the frontend) in its own window
 rem -------------------------------------------------------------
-echo [3/4] Starting backend at %API_BASE% ...
+echo [3/3] Starting CircuitTutor at %API_BASE% ...
 set "CT_PYTHON=%PY_EXE%"
 set "CT_BACKEND_PORT=%BACKEND_PORT%"
-start "CircuitTutor Backend (uvicorn:%BACKEND_PORT%)" /D "%BACKEND_DIR%" cmd /k run.cmd
+start "CircuitTutor (uvicorn:%BACKEND_PORT%)" /D "%BACKEND_DIR%" cmd /k run.cmd
 
-echo       Waiting for backend health check ...
+echo       Waiting for health check ...
 set "BACKEND_READY="
 for /l %%i in (1,1,90) do (
   if not defined BACKEND_READY (
@@ -180,27 +197,19 @@ for /l %%i in (1,1,90) do (
 )
 
 if defined BACKEND_READY (
-  echo       Backend ready: %API_BASE%/health
+  echo       Ready: %API_BASE%/health
 ) else (
-  echo       [WARN] Backend not ready after 90s. Check the backend window log.
+  echo       [WARN] Not ready after 90s. Check the CircuitTutor window log.
 )
 echo.
 
-rem -------------------------------------------------------------
-rem  Step 6 - start frontend in its own window
-rem -------------------------------------------------------------
-echo [4/4] Starting frontend at http://localhost:%FRONTEND_PORT% ...
-start "CircuitTutor Frontend (Vite:%FRONTEND_PORT%)" /D "%FRONTEND_DIR%" cmd /k run.cmd
+start "" "%API_BASE%"
 
-ping -n 6 127.0.0.1 >nul
-start "" "http://localhost:%FRONTEND_PORT%"
-
-echo.
 echo ============================================================
-echo   Ready
-echo     Frontend : http://localhost:%FRONTEND_PORT%
+echo   CircuitTutor is running
+echo     App      : %API_BASE%
 echo     API docs : %API_BASE%/docs
-echo   Close the two service windows to stop them.
+echo   Close the CircuitTutor window to stop it.
 echo ============================================================
 echo.
 pause
@@ -231,6 +240,47 @@ if not defined PY_EXE (
     ) else (
       set "PY_EXE=%~1 %~2"
     )
+  )
+)
+exit /b 0
+:probe_py_list
+rem  Parse "py -0p" output, e.g. " -V:3.14 *  D:\Python314\python.exe".
+rem  The launcher keeps stale registrations after an install is moved,
+rem  so every reported path still has to pass the probe.
+if not defined PY_EXE (
+  for /f "tokens=1,*" %%A in ('py -0p 2^>nul') do (
+    if not defined PY_EXE call :probe_path "%%B"
+  )
+)
+exit /b 0
+
+:probe_registry
+rem  %1 = registry key holding PythonCore\<version>\InstallPath
+rem  Value may be e.g. "D:\Python314\" or the unexpanded installer MSI form.
+if not defined PY_EXE (
+  for /f "tokens=2,*" %%A in ('reg query "%~1" /s /v ExecutablePath 2^>nul') do (
+    if not defined PY_EXE call :probe_path "%%B"
+  )
+)
+exit /b 0
+
+:ask_python
+rem  Interactive fallback: accept a path or a command, or an empty line to skip.
+echo.
+echo No Python 3.10+ found automatically.
+echo Paste the full path to python.exe, or the folder containing it,
+echo or press Enter to see the manual instructions.
+set "PY_INPUT="
+set /p "PY_INPUT=Python path: "
+if defined PY_INPUT (
+  set "PY_INPUT=!PY_INPUT:"=!"
+  if exist "!PY_INPUT!\python.exe" (
+    call :probe_path "!PY_INPUT!\python.exe"
+  ) else (
+    call :probe_path "!PY_INPUT!"
+  )
+  if not defined PY_EXE (
+    echo   That path is not a working Python 3.10+ interpreter.
   )
 )
 exit /b 0

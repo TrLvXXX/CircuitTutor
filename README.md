@@ -13,18 +13,20 @@ CircuitTutor/
 ├── frontend/          前端编辑器（React + TypeScript + Vite）
 │   ├── src/           源码（components / api / utils 等）
 │   ├── index.html
-│   └── run.cmd        单独启动前端（Windows）
-└── start.cmd          一键启动前后端（Windows）
+│   ├── dist/          构建产物（已入库，由后端直接托管）
+│   └── run.cmd        单独启动前端开发服务器（Windows）
+├── start.cmd          一键启动（Windows，仅需 Python）
+└── build_frontend.cmd 重新构建 frontend/dist（改动前端后执行）
 ```
 
 ## 环境要求
 
-| 依赖 | 版本 | 说明 |
+| 用途 | 依赖 | 说明 |
 | --- | --- | --- |
-| Python | 3.10+ | 后端求解服务；安装时勾选 “Add python.exe to PATH” |
-| Node.js | 20 LTS+ | 前端开发服务器（含 npm） |
+| 运行程序 | Python 3.10+ | **唯一必需项**，首次启动自动装依赖 |
+| 构建前端 | Node.js 20 LTS+ | 仅修改前端源码后重新构建时需要 |
 
-> 端口固定为：后端 `127.0.0.1:8000`、前端 `localhost:5173`。Vite 已开启 `strictPort`，端口被占用会直接报错而不会自动换端口。
+> 端口固定为：应用 `127.0.0.1:8000`（后端同时托管前端页面）、开发服务器 `localhost:5173`。Vite 已开启 `strictPort`，端口被占用会直接报错而不会自动换端口。
 
 ## 启动
 
@@ -32,13 +34,19 @@ CircuitTutor/
 
 双击根目录 `start.cmd`，脚本会自动完成：
 
-1. 定位 Python 3.10+（优先 `backend/.venv`，其次 `py -3`、`python`、常见安装目录；会自动跳过 Microsoft Store 的空白别名）
+1. 定位 Python 3.10+（优先 `backend/.venv`，其次 `py -3`、`python`、注册表与常见安装目录；会自动跳过 Microsoft Store 的空白别名）
 2. 首次运行自动创建 `backend/.venv` 并安装 `backend/requirements.txt`
-3. 首次运行自动在 `frontend` 下执行 `npm install`
-4. 检查 8000 / 5173 端口是否被占用（占用时给出提示，不会静默换端口）
-5. 依次拉起后端（uvicorn）与前端（Vite），用 `/health` 确认后端就绪后再打开浏览器
+3. 检查 `frontend\dist` 是否存在，缺失时尝试用 npm 自动构建
+4. 检查 8000 端口是否被占用（占用时给出提示，不会静默换端口）
+5. 启动后端，确认 `/health` 就绪后打开浏览器
 
-关闭弹出的两个服务窗口即停止对应服务。首次运行需联网下载依赖，耗时取决于网络。
+打开后直接访问 <http://127.0.0.1:8000> —— **前端页面和接口由同一个服务提供，不需要安装 Node.js**。关闭弹出的服务窗口即停止。
+
+首次运行只需下载约 30MB 的 Python 依赖（常见 30 秒–2 分钟）。若网络慢，可先用镜像装依赖：
+
+```bat
+backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
 若 Python 已安装但不在 PATH 中，可先指定解释器再运行：
 
@@ -47,7 +55,24 @@ set CIRCUIT_TUTOR_PYTHON=D:\Python312\python.exe
 start.cmd
 ```
 
-也可以单独启动任一端：双击 `backend\run.cmd` 或 `frontend\run.cmd`（后者需先装好 `node_modules`）。
+### 开发模式（前端热更新）
+
+修改前端源码时需要 5173 开发服务器：
+
+```bat
+# 终端 1：后端
+cd backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# 终端 2：前端热更新
+cd frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+开发时访问 <http://localhost:5173>，页面会调用 8000 的接口。改完前端后执行 `build_frontend.cmd` 刷新 `frontend/dist`，`start.cmd` 分发的页面才是最新的。
+
+> 注意：`frontend/dist` 是已提交的构建产物。**改了前端源码却忘记重新构建并提交 dist，用户看到的仍是旧页面。**
 
 ### 手动启动（macOS / Linux 或自定义环境）
 
@@ -78,15 +103,19 @@ npm run dev
 VITE_API_BASE=http://127.0.0.1:8000
 ```
 
+后端会自动托管 `frontend/dist`：构建产物存在时，访问 <http://127.0.0.1:8000> 即可直接打开界面；不存在时只提供 API。
+
 ## 常见问题
 
 | 现象 | 原因与处理 |
 | --- | --- |
 | `No usable Python 3.10+ found` | 未安装 Python 3.10+ 或未加入 PATH；安装时勾选 “Add python.exe to PATH”，或先用 `set CIRCUIT_TUTOR_PYTHON=<python.exe 路径>` 指定 |
-| `Node.js / npm not found` | 未安装 Node.js；安装 20 LTS 后重开终端 |
-| `Port 8000/5173 is already in use` | 关闭占用程序，或用 `netstat -ano \| findstr :5173` 查到 PID 后结束进程 |
-| 前端页面能开但求解报网络错误 | 后端未启动或崩溃，查看「CircuitTutor Backend」窗口日志 |
+| `frontend\dist\index.html not found` | 构建产物缺失；安装 Node.js 后执行 `build_frontend.cmd` |
+| `Node.js / npm not found` | 仅构建前端时需要；运行程序本身不依赖 Node.js |
+| `Port 8000 is already in use` | 关闭占用程序，或用 `netstat -ano \| findstr :8000` 查到 PID 后结束进程 |
+| 页面能开但求解报网络错误 | 后端崩溃，查看「CircuitTutor」窗口日志 |
 | `Failed to install backend dependencies` | 网络问题；脚本提示中已给出 pip 镜像命令，复制重试即可 |
+| 改了前端但页面没变化 | 忘了重新构建；执行 `build_frontend.cmd` 并提交 `frontend/dist` |
 
 ## 测试
 
@@ -95,7 +124,7 @@ VITE_API_BASE=http://127.0.0.1:8000
 cd frontend
 npm test
 
-# 前端构建
+# 前端构建（同时刷新 frontend/dist）
 npm run build
 
 # 后端测试
