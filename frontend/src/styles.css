@@ -1,0 +1,710 @@
+/* =============================================================
+   CircuitTutor 全局样式：三栏布局 + 面板 + 画布
+   —— 主题变量：浅色为默认值，深色经 [data-theme='dark'] 覆盖 ——
+   ============================================================= */
+:root {
+  --app-bg: #f1f5f9;
+  --panel-bg: #ffffff;
+  --panel-border: #e2e8f0;
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --subtle-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --overlay-bg: rgba(255, 255, 255, 0.92);
+  --canvas-bg: #ffffff;
+  --hover-bg: #e2e8f0;
+  --ok-text: #15803d;
+  --danger-text: #dc2626;
+  --error-text: #b91c1c;
+  --error-bg: #fef2f2;
+  --error-border: #fecaca;
+  --step-bg: #f0f9ff;
+  --step-hover-bg: #e0f2fe;
+  --step-active-bg: #fef3c7;
+  --step-title: #1e40af;
+  --step-preview: #b45309;
+  --palette-hover-bg: #eff6ff;
+}
+
+/* 深色主题：仅覆盖变量值，规则本身复用 */
+html[data-theme='dark'] {
+  --app-bg: #0b1220;
+  --panel-bg: #111827;
+  --panel-border: #1f2937;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --subtle-bg: #1e293b;
+  --input-border: #334155;
+  --overlay-bg: rgba(17, 24, 39, 0.92);
+  --canvas-bg: #0f172a;
+  --hover-bg: #1e293b;
+  --ok-text: #4ade80;
+  --danger-text: #f87171;
+  --error-text: #f87171;
+  --error-bg: #3f1d1d;
+  --error-border: #7f1d1d;
+  --step-bg: #1e293b;
+  --step-hover-bg: #334155;
+  --step-active-bg: #3f2d0a;
+  --step-title: #93c5fd;
+  --step-preview: #fbbf24;
+  --palette-hover-bg: #1e293b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--app-bg);
+}
+
+/* —— 顶部标题 —— */
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #0f172a;
+  color: #fff;
+}
+
+.app-header h1 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.app-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* —— 主题切换按钮（标题栏右侧） —— */
+.theme-toggle {
+  margin-left: auto;
+  align-self: center;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* —— 主体三栏 —— */
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* —— 画布交互提示（左上角悬浮） —— */
+.canvas-hint {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--overlay-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--canvas-bg);
+  touch-action: none;
+}
+
+/* —— 画布工具条（右上角） —— */
+.canvas-toolbar {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--overlay-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.tool-btn:hover {
+  background: var(--hover-bg);
+}
+
+.tool-btn-active {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* —— 等电位配色图例 —— */
+.legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 14px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--overlay-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
+
+/* —— 侧栏面板 —— */
+.panel {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 12px;
+  background: var(--panel-bg);
+  overflow-y: auto;
+}
+
+.panel-left {
+  border-right: 1px solid var(--panel-border);
+}
+
+.panel-right {
+  border-left: 1px solid var(--panel-border);
+  width: 240px;
+}
+
+.panel-title {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.panel-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+/* —— 元件库 —— */
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  cursor: grab;
+  background: var(--subtle-bg);
+  user-select: none;
+}
+
+.palette-item:hover {
+  border-color: #60a5fa;
+  background: var(--palette-hover-bg);
+}
+
+.palette-glyph {
+  width: 24px;
+  text-align: center;
+  font-size: 16px;
+  color: #2563eb;
+}
+
+/* —— 属性面板 —— */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.field input {
+  padding: 6px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+
+.value-readonly {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.value-unknown {
+  font-weight: 700;
+  color: var(--danger-text);
+  letter-spacing: 1px;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* —— 按钮 —— */
+.btn {
+  padding: 7px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn:hover {
+  background: var(--subtle-bg);
+}
+
+.btn-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-danger {
+  color: var(--danger-text);
+  border-color: var(--error-border);
+}
+
+.btn-danger:hover {
+  background: var(--error-bg);
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* —— 底部工具栏 —— */
+.app-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+}
+
+.stat {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.toast {
+  font-size: 12px;
+  color: var(--ok-text);
+}
+.toast-error {
+  color: var(--error-text);
+}
+.clear-hint {
+  font-size: 12px;
+  color: var(--ok-text);
+}
+/* —— 求解按钮 —— */
+.btn-solve {
+  margin-left: auto;
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.btn-solve:hover {
+  background: #15803d;
+}
+
+.btn-solve:disabled {
+  background: #86efac;
+  border-color: #86efac;
+  cursor: default;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+/* —— 属性面板：节点电压小节 —— */
+.panel-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 16px 0 8px;
+}
+
+.solve-nodes {
+  border-top: 1px solid var(--panel-border);
+  margin-top: 4px;
+}
+
+/* —— 求解结果抽屉 —— */
+.solution-drawer {
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 12px 16px;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+}
+
+.solution-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.solution-head .panel-subtitle {
+  margin: 0;
+  font-size: 14px;
+}
+
+.solution-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.precision-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.precision-select select {
+  padding: 2px 6px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+
+.solve-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+}
+
+.solve-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  background: var(--subtle-bg);
+  border-radius: 4px;
+}
+
+.solve-equations {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 13px;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  color: var(--text);
+}
+
+.solve-equations li {
+  padding: 2px 0;
+}
+
+.solve-error {
+  font-size: 13px;
+  color: var(--error-text);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+/* —— 电势颜色图例（画布右下角悬浮） —— */
+.voltage-legend-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  max-width: 260px;
+}
+
+.voltage-legend {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--overlay-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.voltage-legend-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.voltage-legend-invalid {
+  color: var(--error-text);
+  font-weight: 400;
+}
+
+.voltage-gradient {
+  height: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--panel-border);
+}
+
+.voltage-legend-scale {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  margin: 2px 0 6px;
+}
+
+.voltage-legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.voltage-legend-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.voltage-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  flex-shrink: 0;
+}
+
+.voltage-node {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.voltage-value {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+/* —— 电流方向动效：橙色虚线流 + 箭头（与电压蓝→红色谱区分） —— */
+.current-flow {
+  fill: none;
+  stroke: #f97316;
+  stroke-width: 2.5;
+  stroke-dasharray: 8 6;
+  stroke-linecap: round;
+  opacity: 0.5;
+  animation: current-flow-anim 0.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes current-flow-anim {
+  to { stroke-dashoffset: -14; }
+}
+
+.current-flow-reverse {
+  animation-direction: reverse;
+}
+
+.current-flow-arrow {
+  fill: #f97316;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* —— 自动简化步骤 —— */
+.simplify-panel {
+  max-height: 35vh;
+  overflow-y: auto;
+}
+
+.simplify-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.simplify-step {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: var(--step-bg);
+  border-left: 3px solid #2563eb;
+  border-radius: 0 4px 4px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.simplify-step:hover {
+  background: var(--step-hover-bg);
+}
+
+.simplify-step-active {
+  background: var(--step-active-bg);
+  border-left-color: #f59e0b;
+}
+
+.simplify-step-title {
+  font-weight: 600;
+  color: var(--step-title);
+  margin-bottom: 2px;
+}
+
+.simplify-step-detail {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.simplify-step-preview {
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--step-preview);
+  font-size: 12px;
+}
+/* —— 已知测量值面板 —— */
+.measurement-panel {
+  padding: 10px 16px;
+  background: var(--subtle-bg);
+  border-top: 1px solid var(--panel-border);
+}
+
+.measurement-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.measurement-form select,
+.measurement-form input[type="text"],
+.measurement-form input[type="number"] {
+  padding: 3px 6px;
+  font-size: 13px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  min-width: 80px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+
+.measurement-form input[type="number"] {
+  width: 80px;
+}
+
+.measurement-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.measurement-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.measurement-list li .btn-ghost {
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}

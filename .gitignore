@@ -1,0 +1,19 @@
+# —— 依赖 ——
+node_modules/
+
+# —— 构建产物 / 缓存 ——
+dist/
+.vite/
+*.tsbuildinfo
+
+# —— 日志 ——
+*.log
+
+# —— Python ——
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# —— 工具快照 ——
+.merkle-snapshot.json

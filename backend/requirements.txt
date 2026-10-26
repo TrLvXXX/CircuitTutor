@@ -1,0 +1,9 @@
+# CircuitTutor 后端求解器依赖
+# 仅直流线性求解所需，不引入 ngspice 等外部仿真器
+numpy>=2.0
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2.9
+pytest>=8.0
+httpx>=0.27# 符号求解（阶段 3）：构建符号 MNA 矩阵并输出解析表达式
+sympy>=1.13

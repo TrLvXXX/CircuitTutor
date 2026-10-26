@@ -1,0 +1,27 @@
+{
+  "name": "circuittutor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CircuitTutor 交互式电路模拟与解题辅助程序（前端编辑器 MVP）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^5.6.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  }
+}
