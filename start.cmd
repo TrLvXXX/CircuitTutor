@@ -117,6 +117,17 @@ if not exist "%VENV_PY%" (
     pause
     exit /b 1
   )
+  "%VENV_PY%" -c "import sys" >nul 2>&1
+  if !errorlevel! neq 0 (
+    echo [ERROR] The virtualenv was created but its python.exe does not work.
+    echo         This usually means the base interpreter is a Microsoft Store
+    echo         alias or a moved install. Try setting the real path first:
+    echo           set CIRCUIT_TUTOR_PYTHON=C:\Python312\python.exe
+    echo           start.cmd
+    rmdir /s /q "%VENV_DIR%" 2>nul
+    pause
+    exit /b 1
+  )
 )
 set "PY_EXE=%VENV_PY%"
 
@@ -232,13 +243,14 @@ exit /b 0
 
 :probe_cmd
 rem  %1 = command name, %2 = optional extra argument (e.g. py -3)
+rem  After the version check passes, resolve sys.executable so we store
+rem  the real python.exe path (not a Store alias or bare command name).
+rem  This prevents venv from recording a non-existent base interpreter.
 if not defined PY_EXE (
   %~1 %~2 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >nul 2>&1
   if !errorlevel! equ 0 (
-    if "%~2"=="" (
-      set "PY_EXE=%~1"
-    ) else (
-      set "PY_EXE=%~1 %~2"
+    for /f "delims=" %%P in ('%~1 %~2 -c "import sys; print(sys.executable)" 2^>nul') do (
+      set "PY_EXE=%%P"
     )
   )
 )
