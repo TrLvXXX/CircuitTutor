@@ -47,10 +47,16 @@ interface Envelope<T> {
   error: { code: string; message: string } | null;
 }
 
-/** 求解服务基地址，可通过 Vite 环境变量覆盖 */
-const BASE_URL: string =
-  (import.meta.env?.VITE_API_BASE as string | undefined) ??
-  'http://127.0.0.1:8000';
+/**
+ * 求解服务基地址。
+ * 开发模式（Vite 5173）指向上游后端，可用 VITE_API_BASE 覆盖；
+ * 生产构建留空走同源相对路径，因此后端换端口部署时页面仍能连上。
+ */
+const DEV_DEFAULT_BASE = 'http://127.0.0.1:8000';
+
+const BASE_URL: string = import.meta.env.DEV
+  ? ((import.meta.env?.VITE_API_BASE as string | undefined) ?? DEV_DEFAULT_BASE)
+  : '';
 
 /**
  * 调用后端求解直流工作点。

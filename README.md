@@ -15,7 +15,9 @@ CircuitTutor/
 │   ├── index.html
 │   ├── dist/          构建产物（已入库，由后端直接托管）
 │   └── run.cmd        单独启动前端开发服务器（Windows）
-├── start.cmd          一键启动（Windows，仅需 Python）
+├── run.cmd            一键启动（Windows，读取 .env，仅需 Python）
+├── .env.example       环境变量模板（复制为 .env 后生效）
+
 └── build_frontend.cmd 重新构建 frontend/dist（改动前端后执行）
 ```
 
@@ -26,34 +28,45 @@ CircuitTutor/
 | 运行程序 | Python 3.10+ | **唯一必需项**，首次启动自动装依赖 |
 | 构建前端 | Node.js 20 LTS+ | 仅修改前端源码后重新构建时需要 |
 
-> 端口固定为：应用 `127.0.0.1:8000`（后端同时托管前端页面）、开发服务器 `localhost:5173`。Vite 已开启 `strictPort`，端口被占用会直接报错而不会自动换端口。
+> 默认端口：应用 `127.0.0.1:8000`（后端同时托管前端页面）、开发服务器 `localhost:5173`。生产端口可用 `.env` 的 `CT_PORT` 修改；Vite 已开启 `strictPort`，端口被占用会直接报错而不会自动换端口。
+
+## Quick Start (for a fresh clone)
+
+1. Install **Python 3.10+** from <https://www.python.org/downloads/> and tick *Add python.exe to PATH*.
+2. Get the sources: `git clone <repo-url>` or **Code → Download ZIP** (extract the whole folder).
+3. Double-click **`run.cmd`** in the project root.
+
+The launcher locates Python, creates `backend\.venv`, installs
+`backend\requirements.txt` on first run, then serves the UI and the API on
+one port and opens the browser at <http://127.0.0.1:8000>.
+
+- First run needs internet (about 30 MB of Python packages, usually 30 s – 2 min).
+- Node.js is **not** required: the prebuilt UI ships in `frontend\dist`.
+- Close the "CircuitTutor" window to stop the app.
+- If install fails, the launcher automatically retries with a public mirror.
+
+Optional configuration: copy `.env.example` to `.env` and edit it.
+
+| Key | Meaning | Default |
+| --- | --- | --- |
+| `CT_PORT` | Port for the UI and the API (same port) | `8000` |
+| `CT_PYTHON` | Full path to `python.exe`, when auto-detect fails | auto |
+| `CT_PIP_INDEX` | pip mirror used for the first install | official PyPI |
+
+`.env` is git-ignored. Invalid `CT_PORT` values are rejected at startup.
 
 ## 启动
 
 ### 一键启动（推荐，Windows）
 
-双击根目录 `start.cmd`，脚本会自动完成：
+双击根目录 `run.cmd`，脚本会自动完成：
 
-1. 定位 Python 3.10+（优先 `backend/.venv`，其次 `py -3`、`python`、注册表与常见安装目录；会自动跳过 Microsoft Store 的空白别名）
-2. 首次运行自动创建 `backend/.venv` 并安装 `backend/requirements.txt`
-3. 检查 `frontend\dist` 是否存在，缺失时尝试用 npm 自动构建
-4. 检查 8000 端口是否被占用（占用时给出提示，不会静默换端口）
+1. 读取 `.env`（可选），定位 Python 3.10+ 并打印实际版本号
+2. 依赖未安装或 `requirements.txt` 已变更时，创建 `backend\.venv` 并安装依赖（失败自动切换镜像重试）
+3. 校验 `frontend\dist` 已随仓库提供，缺失时提示重新下载
+4. 检查端口是否被占用（占用时提示改用 `CT_PORT`，不静默换端口）
 5. 启动后端，确认 `/health` 就绪后打开浏览器
 
-打开后直接访问 <http://127.0.0.1:8000> —— **前端页面和接口由同一个服务提供，不需要安装 Node.js**。关闭弹出的服务窗口即停止。
-
-首次运行只需下载约 30MB 的 Python 依赖（常见 30 秒–2 分钟）。若网络慢，可先用镜像装依赖：
-
-```bat
-backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-若 Python 已安装但不在 PATH 中，可先指定解释器再运行：
-
-```bat
-set CIRCUIT_TUTOR_PYTHON=D:\Python312\python.exe
-start.cmd
-```
 
 ### 开发模式（前端热更新）
 
@@ -70,7 +83,7 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-开发时访问 <http://localhost:5173>，页面会调用 8000 的接口。改完前端后执行 `build_frontend.cmd` 刷新 `frontend/dist`，`start.cmd` 分发的页面才是最新的。
+开发时访问 <http://localhost:5173>，页面会调用 8000 的接口。改完前端后执行 `build_frontend.cmd` 刷新 `frontend/dist`，用户双击 `run.cmd` 看到的才是最新页面。
 
 > 注意：`frontend/dist` 是已提交的构建产物。**改了前端源码却忘记重新构建并提交 dist，用户看到的仍是旧页面。**
 
@@ -109,12 +122,12 @@ VITE_API_BASE=http://127.0.0.1:8000
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| `No usable Python 3.10+ found` | 未安装 Python 3.10+ 或未加入 PATH；安装时勾选 “Add python.exe to PATH”，或先用 `set CIRCUIT_TUTOR_PYTHON=<python.exe 路径>` 指定 |
+| `No usable Python 3.10+ found` | 未安装 Python 3.10+ 或未加入 PATH；安装时勾选 “Add python.exe to PATH”，或在 `.env` 中写入 `CT_PYTHON=<python.exe 路径>` |
 | `frontend\dist\index.html not found` | 构建产物缺失；安装 Node.js 后执行 `build_frontend.cmd` |
 | `Node.js / npm not found` | 仅构建前端时需要；运行程序本身不依赖 Node.js |
-| `Port 8000 is already in use` | 关闭占用程序，或用 `netstat -ano \| findstr :8000` 查到 PID 后结束进程 |
+| `Port 8000 is already in use` | 关闭占用程序，或用 `netstat -ano \| findstr :8000` 查到 PID 后结束进程；也可在 `.env` 中修改 `CT_PORT` 换端口 |
 | 页面能开但求解报网络错误 | 后端崩溃，查看「CircuitTutor」窗口日志 |
-| `Failed to install backend dependencies` | 网络问题；脚本提示中已给出 pip 镜像命令，复制重试即可 |
+| `Could not install backend dependencies` | 网络问题；在 `.env` 中设置 `CT_PIP_INDEX` 为 pip 镜像后重试 |
 | 改了前端但页面没变化 | 忘了重新构建；执行 `build_frontend.cmd` 并提交 `frontend/dist` |
 
 ## 测试

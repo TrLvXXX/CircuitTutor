@@ -143,4 +143,56 @@ describe('computeWireCurrents', () => {
     expect(result[0].current).toBe(-0.003);
     expect(result[0].forward).toBe(false);
   });
+
+  // —— 电流源：后端 branch_currents 约定为 pin0 流出（与电阻/电压源相反），sign 取反 ——
+  it('电流源 from 端 pin0：电流从 pin0 流出，导线 from→to 为正', () => {
+    const components = [comp('I1', 'current_source'), comp('R1', 'resistor')];
+    const wires = [wire('W1', 'I1', 0, 'R1', 0)];
+    // 电流源 pin0 流出 → 导线 from→to 为正 = +branch_currents[I1]
+    const result = computeWireCurrents(components, wires, fakeResult({ I1: 0.002, R1: 0.002 }));
+    expect(result).toHaveLength(1);
+    expect(result[0].current).toBe(0.002);
+    expect(result[0].forward).toBe(true);
+  });
+
+  it('电流源 from 端 pin1：电流从 pin1 流入，导线 to→from 为正', () => {
+    const components = [comp('R1', 'resistor'), comp('I1', 'current_source')];
+    const wires = [wire('W1', 'I1', 1, 'R1', 0)];
+    // 电流源 pin1 流入 → 导线 to→from 为正 = from→to 为负 = -branch_currents[I1]
+    const result = computeWireCurrents(components, wires, fakeResult({ I1: 0.002, R1: 0.002 }));
+    expect(result).toHaveLength(1);
+    expect(result[0].current).toBe(-0.002);
+    expect(result[0].forward).toBe(false);
+  });
+
+  it('电流源 to 端 pin0：电流从 pin0 流出，导线 to→from 为正', () => {
+    const components = [comp('OP1', 'opamp_ideal'), comp('I1', 'current_source')];
+    const wires = [wire('W1', 'OP1', 2, 'I1', 0)];
+    // to 端电流源 pin0 流出 → 导线 to→from 为正 = from→to 为负 = -branch_currents[I1]
+    const result = computeWireCurrents(components, wires, fakeResult({ I1: 0.002 }));
+    expect(result).toHaveLength(1);
+    expect(result[0].current).toBe(-0.002);
+    expect(result[0].forward).toBe(false);
+  });
+
+  it('电流源 to 端 pin1：电流从 pin1 流入，导线 from→to 为正', () => {
+    const components = [comp('OP1', 'opamp_ideal'), comp('I1', 'current_source')];
+    const wires = [wire('W1', 'OP1', 2, 'I1', 1)];
+    // to 端电流源 pin1 流入 → 导线 from→to 为正 = +branch_currents[I1]
+    const result = computeWireCurrents(components, wires, fakeResult({ I1: 0.002 }));
+    expect(result).toHaveLength(1);
+    expect(result[0].current).toBe(0.002);
+    expect(result[0].forward).toBe(true);
+  });
+
+  it('电流源端到端：I1 注入 na 经 R 到地，导线 I1.pin0→R.pin0 方向 from→to', () => {
+    // 模拟电流源电路：I1(1mA) 注入 na，R1(1kΩ) 从 na 到地
+    // 后端：branch_currents[I1]=+0.001（pin0 流出），branch_currents[R1]=-0.001（pin0 流入为负）
+    const components = [comp('I1', 'current_source'), comp('R1', 'resistor')];
+    const wires = [wire('W1', 'I1', 0, 'R1', 0)];
+    const result = computeWireCurrents(components, wires, fakeResult({ I1: 0.001, R1: -0.001 }));
+    expect(result).toHaveLength(1);
+    // 电流从 I1 pin0 流出注入 na，经导线流向 R1，方向 from→to
+    expect(result[0].forward).toBe(true);
+  });
 });

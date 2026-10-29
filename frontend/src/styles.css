@@ -25,6 +25,9 @@
   --step-title: #1e40af;
   --step-preview: #b45309;
   --palette-hover-bg: #eff6ff;
+  /* 三栏面板宽度（求解结果抽屉据此对齐画布宽度） */
+  --panel-left-w: 220px;
+  --panel-right-w: 240px;
 }
 
 /* 深色主题：仅覆盖变量值，规则本身复用 */
@@ -214,7 +217,7 @@ body,
 
 /* —— 侧栏面板 —— */
 .panel {
-  width: 220px;
+  width: var(--panel-left-w);
   flex-shrink: 0;
   padding: 12px;
   background: var(--panel-bg);
@@ -227,7 +230,7 @@ body,
 
 .panel-right {
   border-left: 1px solid var(--panel-border);
-  width: 240px;
+  width: var(--panel-right-w);
 }
 
 .panel-title {
@@ -414,13 +417,15 @@ body,
   margin-top: 4px;
 }
 
-/* —— 求解结果抽屉 —— */
+/* —— 求解结果抽屉：宽度对齐中间画布部分 —— */
 .solution-drawer {
   max-height: 40vh;
   overflow-y: auto;
   padding: 12px 16px;
   background: var(--panel-bg);
   border-top: 1px solid var(--panel-border);
+  margin-left: var(--panel-left-w);
+  margin-right: var(--panel-right-w);
 }
 
 .solution-head {
