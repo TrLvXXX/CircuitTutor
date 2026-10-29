@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 rem =============================================================
 rem  CircuitTutor frontend launcher
-rem  Usually started by ..\start.cmd; can also be double-clicked.
+rem  Dev server for hot reload; can be double-clicked after npm install.
 rem =============================================================
 
 if not exist "%~dp0node_modules" (

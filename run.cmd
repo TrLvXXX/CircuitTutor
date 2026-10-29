@@ -173,21 +173,22 @@ if !errorlevel! equ 0 (
   goto :deps_done
 )
 
+rem  Tsinghua mirror is the default: the official PyPI CDN is often
+rem  unreachable or very slow from mainland China, and the first run
+rem  has to fetch ~30 MB. Set CT_PIP_INDEX in .env to use another one.
+set "PIP_INDEX=%CT_PIP_INDEX%"
+if not defined PIP_INDEX set "PIP_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple"
+
 echo [2/4] Installing backend dependencies ^(needs internet^) ...
+echo       Index   : %PIP_INDEX%
 set "PIP_OK="
-if defined CT_PIP_INDEX (
-  echo       Index   : %CT_PIP_INDEX%
-  "%PY_EXE%" -m pip install -r "%REQ_FILE%" -i "%CT_PIP_INDEX%" --disable-pip-version-check
-) else (
-  echo       Index   : official PyPI
-  "%PY_EXE%" -m pip install -r "%REQ_FILE%" --disable-pip-version-check
-)
+"%PY_EXE%" -m pip install -r "%REQ_FILE%" -i "%PIP_INDEX%" --disable-pip-version-check
 if !errorlevel! equ 0 set "PIP_OK=1"
 
 if not defined PIP_OK (
   echo.
-  echo       Install failed. Retrying with a public mirror ...
-  "%PY_EXE%" -m pip install -r "%REQ_FILE%" -i https://pypi.tuna.tsinghua.edu.cn/simple --disable-pip-version-check
+  echo       Install failed. Retrying with the official PyPI ...
+  "%PY_EXE%" -m pip install -r "%REQ_FILE%" --disable-pip-version-check
   if !errorlevel! equ 0 set "PIP_OK=1"
 )
 
@@ -195,9 +196,9 @@ if not defined PIP_OK (
   echo.
   echo [ERROR] Could not install backend dependencies.
   echo         Retry manually, then run this script again:
-  echo           "%PY_EXE%" -m pip install -r "%REQ_FILE%"
-  echo         Behind a proxy, set the mirror in .env first:
-  echo           CT_PIP_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
+  echo           "%PY_EXE%" -m pip install -r "%REQ_FILE%" -i %PIP_INDEX%
+  echo         If this mirror is blocked, pick another one in .env:
+  echo           CT_PIP_INDEX=https://mirrors.aliyun.com/pypi/simple/
   echo         No internet at all? This build cannot start without the
   echo         packages listed in backend\requirements.txt.
   pause

@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 rem =============================================================
 rem  CircuitTutor backend launcher
-rem  Usually started by ..\start.cmd (which passes CT_PYTHON / CT_BACKEND_PORT).
+rem  Usually started by ..\run.cmd (which passes CT_PYTHON / CT_BACKEND_PORT).
 rem  Can also be double-clicked on its own.
 rem =============================================================
 

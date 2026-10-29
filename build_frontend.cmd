@@ -4,7 +4,7 @@ title CircuitTutor - build frontend
 
 rem =============================================================
 rem  Rebuild frontend\dist after editing frontend sources.
-rem  start.cmd serves that folder through the backend, so the
+rem  run.cmd serves that folder through the backend, so the
 rem  build output has to be refreshed whenever the UI changes.
 rem  Requires Node.js 20 LTS+.
 rem =============================================================
@@ -56,7 +56,7 @@ if not exist "%ROOT%\frontend\dist\index.html" (
 echo.
 echo ============================================================
 echo   Frontend built into frontend\dist
-echo   Run start.cmd to serve it at http://127.0.0.1:8000
+echo   Run run.cmd to serve it at http://127.0.0.1:8000
 echo ============================================================
 echo.
 pause
